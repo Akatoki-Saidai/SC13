@@ -3,12 +3,12 @@ import logging
 import sys
 import time
 
-# Create and configure the BNO sensor connection.  Make sure only ONE of the
-# below 'bno = ...' lines is uncommented:
-# Raspberry Pi configuration with serial UART and RST connected to GPIO 18:
+# BNOセンサーの接続を作成し、設定する。 以下の'bno = ...'の行のうち、1つだけをアンコメントしてください。
+# 以下の 'bno = ...' の行のうち、1つだけがコメントアウトされていないことを確認してください。
+# GPIO 18にシリアルUARTとRSTを接続したRaspberry Piの設定。→変更して自動でI2C通信で行う
 bno = BNO055.BNO055(rst=18)
-# BeagleBone Black configuration with default I2C connection (SCL=P9_19, SDA=P9_20),
-# and RST connected to pin P9_12:
+# BeagleBone Black の構成は、デフォルトの I2C 接続 (SCL=P9_19, SDA=P9_20)です。
+# そして RST は P9_12 ピンに接続されています。
 #bno = BNO055.BNO055(rst='P9_12')
 
 
@@ -16,11 +16,11 @@ bno = BNO055.BNO055(rst=18)
 if len(sys.argv) == 2 and sys.argv[1].lower() == '-v':
     logging.basicConfig(level=logging.DEBUG)
 
-# Initialize the BNO055 and stop if something went wrong.
+# Initialize the BNO055 and stop if something went wrong.初期化
 if not bno.begin():
     raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
 
-# Print system status and self test result.
+# Print system status and self test result.システム状況表示
 status, self_test, error = bno.get_system_status()
 print('System status: {0}'.format(status))
 print('Self test result (0x0F is normal): 0x{0:02X}'.format(self_test))
