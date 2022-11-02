@@ -11,7 +11,7 @@ import csv
  # 日時に関して
 import datetime
 
-bno = BNO055.BNO055(rst=18)
+bno = BNO055.BNO055()
 if len(sys.argv) == 2 and sys.argv[1].lower() == '-v':# パラメータとして-vが渡された場合、冗長なデバッグロギングを有効にする
     logging.basicConfig(level=logging.DEBUG)
 if not bno.begin():# BNO055を初期化し、問題が発生した場合は停止する
@@ -31,7 +31,7 @@ print('Gyroscope ID:       0x{0:02X}\n'.format(gyro))
 while True:
     heading, roll, pitch = bno.read_euler()# Read the Euler angles for heading, roll, pitch (all in degrees).
     sys, gyro, accel, mag = bno.get_calibration_status() # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
-    qx,qy,qz,qw = bno.read_quaterion()        # Orientation as a quaternion:
+    qx,qy,qz,qw = bno.read_quatenion()        # Orientation as a quaternion:
     temp_c = bno.read_temp()        # Sensor temperature in degrees Celsius:
     mx,my,mz = bno.read_magnetometer()        # Magnetometer data (in micro-Teslas):
     Gx,Gy,Gz = bno.read_gyroscope()        # Gyroscope data (in degrees per second):
