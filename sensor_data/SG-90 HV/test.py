@@ -22,8 +22,7 @@ time.sleep(0.5)
 now_time=time.time()
 # whileで繰り返し処理
     # 標準入力によりサーボの角度を指定
-print('サーボの角度（-90~90deg）を指定してください。endを入力すると止まります。')
-input_num = input('>')
+input_num = 5.0
 
 
         # サーボを動かす
