@@ -10,3 +10,6 @@ def main():
 
   while True:
     temperature = bme280.read_temperature() # 温度を取得
+
+if __name__ == '__main__':
+  main()
