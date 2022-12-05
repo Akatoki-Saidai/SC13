@@ -80,7 +80,7 @@ def stop():           #停止
     Bpwm.start(0)                  #def forward()右車輪と同上
     GPIO.output(BIN1,GPIO.LOW)
     Bpwm.ChangeDutyCycle(0)
-#BME280---------------------------------
+#空気質センサーBME280---------------------------------
 bus_number  = 1
 i2c_address = 0x76
 
