@@ -26,7 +26,7 @@ b1.start(0)
 b2.start(0)
 
 
-def pid_right(x): #xは物体の中心のx座標
+def pid_right(): 
 
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
@@ -70,7 +70,7 @@ def pid_right(x): #xは物体の中心のx座標
         return y_list(i)
 
 
-def pid_left(x):
+def pid_left():
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
