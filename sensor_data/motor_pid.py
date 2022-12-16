@@ -120,8 +120,8 @@ def stop():
 
 def motor_processing(x):
     if(x != None):
-        power_R = (60 + pid_right() - pid_left()) #60は初期値
-        power_L = (60 + pid_left() - pid_right()) #60は初期値
+        power_R = (60 + pid_right() - pid_left()) #60は初期値   要調節
+        power_L = (60 + pid_left() - pid_right()) #60は初期値   要調節
 
         a1.ChangeDutyCycle(power_R)
         a2.ChangeDutyCycle(0)
