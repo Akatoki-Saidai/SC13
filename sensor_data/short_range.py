@@ -23,7 +23,7 @@ class Short_range():
         # 画像の読み込み、前処理
         self.input_shape = (416, 416)
         # ONNXセッション
-        self.session = onnxruntime.InferenceSession("C:\\Users\\konan\\YOLOX\\yolox_nano_cone.onnx")
+        self.session = onnxruntime.InferenceSession("C:\\Users\\xxxx\\YOLOX\\yolox_nano_cone.onnx")
         # 出力する動画ファイルの設定
         self.fps = 15
         self.size = (640,480)
