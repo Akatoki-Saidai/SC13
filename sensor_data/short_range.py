@@ -68,7 +68,7 @@ class Short_range():
                 arg = np.argmax(final_scores)#認識した物体の中で、Coneの確率が最も高いのを取り出す。
                 print(final_cls_inds.max())
         
-                x_center = (final_boxes[0] + final_boxes[3]) / 2
+                x_center = (final_boxes[0] + final_boxes[2]) / 2
 
                 #1つだけ認識できるようにした。もし複数物体認識したいのならvisualize.pyの#を外して、インデントを上げる。またmax()を外す。
                 inference_img = vis(origin_img, final_boxes[arg], final_scores[arg], final_cls_inds.max(),
