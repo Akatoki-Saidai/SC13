@@ -63,7 +63,14 @@ class Short_range():
                 final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
                 #final_boxes　　認識した物体の座標(左上頂点のx,左上頂点のy,右下頂点のx,右下頂点のy)
                 # BoundingBoxを描画する場合
-
+                
+                #座標がnumpy配列の一つの要素としてまとめられて渡されるので、区切る。
+                x_left_upper = str(final_boxes)
+                x_left_upper = x_left_upper.replace('[', '')
+                x_left_upper = x_left_upper.replace(']', '')
+                x_left_upper = x_left_upper.split()
+                x_center = float(x_left_upper[0]) + float(x_left_upper[2]) / 2
+                
                 print(np.max(final_scores))
                 arg = np.argmax(final_scores)#認識した物体の中で、Coneの確率が最も高いのを取り出す。
                 print(final_cls_inds.max())
