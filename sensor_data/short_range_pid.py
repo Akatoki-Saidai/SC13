@@ -36,7 +36,7 @@ class Short_range():
 
     def object_detection(self):
         global x_center
-    
+        final_boxes = None
         while(self.cap.isOpened()):
             # フレームを取得
             
