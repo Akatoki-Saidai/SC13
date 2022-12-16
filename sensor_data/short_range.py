@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import sys
-sys.path.append("C:\\Users\\konan\\YOLOX")
+sys.path.append("C:\\Users\\xxxx\\YOLOX")
 import onnxruntime
 from yolox.data.data_augment import preproc as preprocess
 from yolox.data.datasets import COCO_CLASSES
