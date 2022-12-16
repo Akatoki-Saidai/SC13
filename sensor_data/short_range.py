@@ -123,12 +123,8 @@ class Short_range():
                 stop()
                 time.sleep(1)
 
-
-            #止まる(物体の近くに接近した際)
-                stop()
-                GPIO.cleanup()
-                break
-    
+            else:
+                continue
 
 
 cansat = Short_range()
