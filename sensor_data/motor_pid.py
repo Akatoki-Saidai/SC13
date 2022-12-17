@@ -31,8 +31,8 @@ def pid_right(x_center):
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
-    M0 = 0.00 #M : 与える操作量(入力)
-    M1 =  0.00 #一つ前に与えた操作量(入力)
+    pwm0 = 0.00 #M : 与える操作量(入力)
+    pwm1 =  0.00 #一つ前に与えた操作量(入力)
     goal = 320.00 #目標値 (物体の中心)
     e = 0.00 #偏差(目的値と現在値の差)
     e1 = 0.00 #前回の偏差
@@ -43,7 +43,7 @@ def pid_right(x_center):
 
     #e(物体の中心の誤差)を使うことで，M(適切なpwmの出力)を出すことが目標
 
-    i = 0
+    i = 1
 
     x_list = []
     y_list = []
@@ -53,19 +53,19 @@ def pid_right(x_center):
 
     while(True):
 
-        M1 = M0
+        pwm1 = pwm0
         e2 = e1
         e1 = e
         e = goal - x_center
-        M0 = M1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
+        pwm0 = pwm1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
-        y_list.append(M0)
+        y_list.append(pwm0)
         #print(y_list[i])
         i += 1
-        if(0 > M0):
-            M0 = 0
-        elif(100 < M0):
-            M0 = 100
+        if(0 > pwm0):
+            pwm0 = 0
+        elif(100 < pwm0):
+            pwm0 = 100
 
         return y_list(i)
 
@@ -74,8 +74,8 @@ def pid_left(x_center):
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
-    M0 = 0.00 #M : 与える操作量(入力)
-    M1 =  0.00 #一つ前に与えた操作量(入力)
+    pwm0 = 0.00 #M : 与える操作量(入力)
+    pwm1 =  0.00 #一つ前に与えた操作量(入力)
     goal = 320.00 #目標値 
     e = 0.00 #偏差(目的値と現在値の差)
     e1 = 0.00 #前回の偏差
@@ -85,7 +85,7 @@ def pid_left(x_center):
     Kd = 0.1 #予期していない外部からの影響を和らげる項
     #e(物体の中心の誤差)を使うことで，M(適切な操作量)を出すことが目標
 
-    i = 0
+    i = 1
 
     x_list = []
     y_list = []
@@ -94,20 +94,20 @@ def pid_left(x_center):
     y_list.append(0.00)
 
     while(True):
-        M1 = M0
+        pwm1 = pwm0
         e2 = e1
         e1 = e
         e = goal - x_center
-        M0 = M1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
+        pwm0 = pwm1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
-        y_list.append(M0)
+        y_list.append(pwm0)
         #print(y_list[i])
 
         i += 1
-        if(0 > M0):
-            M0 = 0
-        elif(100 < M0):
-            M0 = 100
+        if(0 > pwm0):
+            pwm0 = 0
+        elif(100 < pwm0):
+            pwm0 = 100
 
         return y_list[i]
 
