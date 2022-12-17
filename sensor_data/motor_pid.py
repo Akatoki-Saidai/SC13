@@ -1,5 +1,5 @@
 import RPi.GPIO as GPIO #GPIOインポート
-
+import matplotlib.pyplot as plt
 #pidのプログラム　参考　https://qiita.com/BIG_LARGE_STONE/items/4f8af62b3edc4a03c4a5
 #                     https://veresk.hatenablog.com/entry/2019/06/29/192525
 #PIN指定
@@ -32,7 +32,7 @@ def pid_right(x_center):
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
     pwm0 = 0.00 #M : 与える操作量(入力)
-    pwm1 =  0.00 #一つ前に与えた操作量(入力)
+    pwm1 =  0.00 #一つ前に与えた操作量(入力)　なぜこの項が必要なのかわからない。
     goal = 320.00 #目標値 (物体の中心)
     e = 0.00 #偏差(目的値と現在値の差)
     e1 = 0.00 #前回の偏差
@@ -57,7 +57,7 @@ def pid_right(x_center):
         e2 = e1
         e1 = e
         e = goal - x_center
-        pwm0 = pwm1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
+        pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
         y_list.append(pwm0)
         #print(y_list[i])
@@ -75,7 +75,7 @@ def pid_left(x_center):
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
     pwm0 = 0.00 #M : 与える操作量(入力)
-    pwm1 =  0.00 #一つ前に与えた操作量(入力)
+    pwm1 =  0.00 #一つ前に与えた操作量(入力)　なぜこの項が必要なのかわからない。
     goal = 320.00 #目標値 
     e = 0.00 #偏差(目的値と現在値の差)
     e1 = 0.00 #前回の偏差
@@ -98,7 +98,7 @@ def pid_left(x_center):
         e2 = e1
         e1 = e
         e = goal - x_center
-        pwm0 = pwm1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
+        pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
         y_list.append(pwm0)
         #print(y_list[i])
