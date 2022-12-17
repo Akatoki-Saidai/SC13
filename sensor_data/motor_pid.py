@@ -26,8 +26,9 @@ a2.start(0)#Aphase接続（P）
 b1.start(0)
 b2.start(0)
 
+x_center = None
 
-def pid_right(x_center): 
+def pid_right(): 
 
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
@@ -71,7 +72,7 @@ def pid_right(x_center):
         return y_list(i)
 
 
-def pid_left(x_center):
+def pid_left():
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
@@ -121,9 +122,17 @@ def stop():
 
 def motor_processing(x_center):
     if(x_center != None):
-        power_R = (60 + pid_right(x_center) - pid_left(x_center)) #60は初期値   要調節
-        power_L = (60 + pid_left(x_center) - pid_right(x_center)) #60は初期値   要調節
-
+        power_R = (30 + pid_right() - pid_left()) #60は初期値   要調節
+        power_L = (30 + pid_left() - pid_right()) #60は初期値   要調節
+        if(power_R > 100):
+            power_R = 100
+        if(power_R < 0):
+            power_R = 0  
+        if(power_L > 100):
+            power_L = 100
+        if(power_L < 0):
+            power_L = 0 
+            
         a1.ChangeDutyCycle(power_R)
         a2.ChangeDutyCycle(0)
         b1.ChangeDutyCycle(power_L)
