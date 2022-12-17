@@ -26,7 +26,7 @@ b1.start(0)
 b2.start(0)
 
 
-def pid_right(): 
+def pid_right(x_center): 
 
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
@@ -56,7 +56,7 @@ def pid_right():
         M1 = M0
         e2 = e1
         e1 = e
-        e = goal - y_list[i-1]
+        e = goal - x_center
         M0 = M1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
         y_list.append(M0)
@@ -70,7 +70,7 @@ def pid_right():
         return y_list(i)
 
 
-def pid_left():
+def pid_left(x_center):
     #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
     #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
     #Kx　の値については調節が必要
@@ -97,7 +97,7 @@ def pid_left():
         M1 = M0
         e2 = e1
         e1 = e
-        e = goal - y_list[i-1]
+        e = goal - x_center
         M0 = M1 + Kp * (e-e1) + Ki * e + Kd * ((e-e1) - (e1-e2))
         x_list.append(i)
         y_list.append(M0)
@@ -118,21 +118,29 @@ def stop():
     b2.ChangeDutyCycle(0)
 
 
-def motor_processing(x):
-    if(x != None):
-        power_R = (60 + pid_right() - pid_left()) #60は初期値   要調節
-        power_L = (60 + pid_left() - pid_right()) #60は初期値   要調節
+def motor_processing(x_center):
+    if(x_center != None):
+        power_R = (60 + pid_right(x_center) - pid_left(x_center)) #60は初期値   要調節
+        power_L = (60 + pid_left(x_center) - pid_right(x_center)) #60は初期値   要調節
 
         a1.ChangeDutyCycle(power_R)
         a2.ChangeDutyCycle(0)
         b1.ChangeDutyCycle(power_L)
         b2.ChangeDutyCycle(0)
-
+        
+    elif (x_center == x):#見失ったら回転
+        a1.ChangeDutyCycle(70)
+        a2.ChangeDutyCycle(0)
+        b1.ChangeDutyCycle(0)
+        b2.ChangeDutyCycle(0)
+        
     else:#見失ったら回転
         a1.ChangeDutyCycle(70)
         a2.ChangeDutyCycle(0)
         b1.ChangeDutyCycle(0)
         b2.ChangeDutyCycle(0)
+       
+       x_before = x_center 
             
 
 
