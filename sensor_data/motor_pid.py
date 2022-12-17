@@ -60,10 +60,6 @@ def pid_right():
         e1 = e
         e = goal - x_center
         pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
-        if(0 > pwm0):
-            pwm0 = 0
-        elif(100 < pwm0):
-            pwm0 = 100
             
         x_list.append(i)
         y_list.append(pwm0)
@@ -102,10 +98,7 @@ def pid_left():
         e1 = e
         e = goal - x_center
         pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
-        if(0 > pwm0):
-            pwm0 = 0
-        elif(100 < pwm0):
-            pwm0 = 100
+
         x_list.append(i)
         y_list.append(pwm0)
         #print(y_list[i])
@@ -123,8 +116,8 @@ def stop():
 
 def motor_processing(x_center):
     if(x_center != None):
-        power_R = (30 + pid_right() - pid_left()) #60は初期値   要調節
-        power_L = (30 + pid_left() - pid_right()) #60は初期値   要調節
+        power_R = (30 + pid_right() - pid_left()) #30は初期値   要調節
+        power_L = (30 + pid_left() - pid_right()) #30は初期値   要調節
         if(power_R > 100):
             power_R = 100
         if(power_R < 0):
