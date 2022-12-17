@@ -35,7 +35,6 @@ class Short_range():
 
 
     def object_detection(self):
-        global x_center
         final_boxes = None
         while(self.cap.isOpened()):
             # フレームを取得
@@ -69,7 +68,7 @@ class Short_range():
                 x_left_upper = x_left_upper.replace('[', '')
                 x_left_upper = x_left_upper.replace(']', '')
                 x_left_upper = x_left_upper.split()
-                x_center = float(x_left_upper[0]) + float(x_left_upper[2]) / 2
+                motor_pid.x_center = float(x_left_upper[0]) + float(x_left_upper[2]) / 2
                 
                 print(np.max(final_scores))
                 arg = np.argmax(final_scores)#認識した物体の中で、Coneの確率が最も高いのを取り出す。
@@ -99,7 +98,7 @@ class Short_range():
                 GPIO.cleanup()
                 break
 
-            motor_processing(x_center)
+            motor_processing(motor_pid.x_center)
     
 
 
