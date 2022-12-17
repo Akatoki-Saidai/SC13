@@ -60,14 +60,15 @@ def pid_right():
         e1 = e
         e = goal - x_center
         pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
-        x_list.append(i)
-        y_list.append(pwm0)
-        #print(y_list[i])
-        i += 1
         if(0 > pwm0):
             pwm0 = 0
         elif(100 < pwm0):
             pwm0 = 100
+            
+        x_list.append(i)
+        y_list.append(pwm0)
+        #print(y_list[i])
+        i += 1
 
         return y_list(i)
 
@@ -101,15 +102,15 @@ def pid_left():
         e1 = e
         e = goal - x_center
         pwm0 = pwm1 + Kp * (e-e1) + Ki * e - Kd * ((e-e1) - (e1-e2))
+        if(0 > pwm0):
+            pwm0 = 0
+        elif(100 < pwm0):
+            pwm0 = 100
         x_list.append(i)
         y_list.append(pwm0)
         #print(y_list[i])
 
         i += 1
-        if(0 > pwm0):
-            pwm0 = 0
-        elif(100 < pwm0):
-            pwm0 = 100
 
         return y_list[i]
 
