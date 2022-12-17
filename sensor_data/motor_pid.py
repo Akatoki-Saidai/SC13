@@ -1,7 +1,8 @@
 import RPi.GPIO as GPIO #GPIOインポート
-import matplotlib.pyplot as plt
+
 #pidのプログラム　参考　https://qiita.com/BIG_LARGE_STONE/items/4f8af62b3edc4a03c4a5
 #                     https://veresk.hatenablog.com/entry/2019/06/29/192525
+#short_range_pid.pyのほうで、whileで何回もpid関数を呼び出しているが、それだとうまく動かないかもしれない。(以前の偏差が蓄積されないから)
 #PIN指定
 AIN1 = 15
 AIN2 = 29
