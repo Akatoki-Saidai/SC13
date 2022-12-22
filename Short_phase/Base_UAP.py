@@ -21,7 +21,7 @@ class UAP():
         self.Kp = 0.1 #誤差が大きいときには入力を大きく、誤差が少ないときには入力を小さくするように入力値を調整  イメージとしては引っ張ったばねが徐々に収束する感じ
         self.Ki = 0.1 #現在の物体の中心がが目標値を上回るときにはpwmの上昇幅を小さくし、下回るときにはpwmの上昇幅を大きくするように入力を調整  ダンパーがついているイメージ
         self.Kd = 0.1 #予期していない外部からの影響を和らげる項
-
+        #self.T = 0.01
         #e(物体の中心の誤差)を使うことで，M(適切なpwmの出力)を出すことが目標
         #厳密に項の値を調べないと発散するかも。そのため、値に制限かけるように。
 
@@ -72,6 +72,18 @@ class UAP():
         pwm0 = pwm1 + self.Kp * (e-e1) + self.Ki * e - self.Kd * ((e-e1) - (e1-e2))
 
         return pwm0,e,e1
+ 
+#もし上記の式でうまくいかなかったとき用
+"""
+def pid(self,pwm1,e1,ie,x_center):
+
+    e = self.goal - x_center
+    de = (e - e1)/ self.T#偏差/微小な値で傾き
+    ie = ie + (e + e1) * self.T/2 #台形近似
+    pwm0 = pwm1 + self.Kp * (e-e1) + self.Ki * ie - self.Kd * de
+
+    return pwm0,e
+"""
 
 if __name__ == 'main':
     cansat = UAP()
