@@ -31,3 +31,8 @@ def reading(sensor):
         GPIO.cleanup()
     else:
         print ("Incorrect usonic() function varible.")
+            
+while True:
+    print (cansat.reading(0))
+    if(cansat.reading(0) < 30 ):
+        break  
