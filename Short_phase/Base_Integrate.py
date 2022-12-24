@@ -120,7 +120,7 @@ class Short_Range(BaseSR):
             x_before = x_center 
     
 
-if __name__ == 'main':
+if __name__ == '__main__':
     cansat = Short_Range()
 
     thread_object_detection = threading.Thread(target=cansat.object_detection())
