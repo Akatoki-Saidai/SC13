@@ -56,6 +56,6 @@ class BaseSR(Motor):
                 print("Error")
                 break
 
-if __name__ == 'main':
+if __name__ == '__main__':
     cansat = BaseSR()
     cansat.camera()
