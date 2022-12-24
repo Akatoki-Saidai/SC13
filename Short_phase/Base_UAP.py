@@ -85,7 +85,7 @@ def pid(self,pwm1,e1,ie,x_center):
     return pwm0,e
 """
 
-if __name__ == 'main':
+if __name__ == '__main__':
     cansat = UAP()
     while True:
         print (cansat.reading(0))
