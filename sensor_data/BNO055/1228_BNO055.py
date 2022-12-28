@@ -1,4 +1,5 @@
 #pip install adafruit_BNO055
+#syuturyoku suuti ha huseikaku you kakuninn
 import logging
 import sys
 import time
