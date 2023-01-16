@@ -32,7 +32,7 @@ print('Accelerometer ID:   0x{0:02X}'.format(accel))
 print('Magnetometer ID:    0x{0:02X}'.format(mag))
 print('Gyroscope ID:       0x{0:02X}\n'.format(gyro))
 
-##-----DaraLoging----------------
+##-----DataLoging----------------
 file = open('BNO055_log.csv','w')
 file.write('time'+','+"yaw"+','+'roll'+','+'pitch'+'\n')
 i = 0
