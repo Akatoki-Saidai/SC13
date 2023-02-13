@@ -11,77 +11,85 @@ import RPi.GPIO as GPIO
 import time
 from multiprocessing import Process,Value
 import csv
+
 class Short_Range(BaseSR):
     
     def __init__(self):
         
         global e
         global e1
-        self.duty = 50
+
+
+        # 全体(GPIO)の初期化
+        
         GPIO.setwarnings(False)
+
+        #GPIOのモード
+        #GPIO.setmode(GPIO.BOARD)#物理ピン番号でGPIOを指定
         GPIO.setmode(GPIO.BOARD)
 
-        global signaloff
-        global signalon
+        #----------------------------------------------------
+
+        # 物体検出の初期化
+
         # 出力する動画ファイルの設定
         self.fps = 10
         self.size = (640,480)
         self.fourcc = cv2.VideoWriter_fourcc('m','p','4','v')
         self.video_name = 'VIDEO.avi'
 
+        # 共通メモリ
+        self.x_center = Value("d",320)
+        self.count = Value("i",0) #カメラが終了したらモーターも終了するためのフラグ or 超音波で接近を検知したら、カメラが終了し映像を保存するためのフラグ
+        
+        # カメラ指定
+        self.cap = cv2.VideoCapture(0)
 
+        # 入力画像のサイズ
+        self.input_shape = (416, 416)
 
-        #------超音波------
+        # モデルのファイル名
+        self.session = onnxruntime.InferenceSession("yolox_nano_cone_best.onnx")
 
+        #----------------------------------------------------
+
+        # 超音波の初期化
+
+        # PIN指定
         self.TRIG = 11
         self.ECHO = 13
-    
-        self.x_center = Value("d",320)
-        self.count = Value("i",0)
-        #------pid------
 
-        #ここでいう誤差とは (目標値 - 現在の物体の中心)　であり、　入力とはモーターのpwmの値。
-        #pid制御についての参考文献　https://controlabo.com/pid-control-introduction/
-        #Kx　の値については調節が必要
+        global signaloff
+        global signalon
 
+        #-----------------------------------------------------
 
-        #PIN指定
+        # モーターの初期化
+
+        # PIN指定
         self.AIN1 = 15
         self.AIN2 = 29
         self.BIN1 = 31
         self.BIN2 = 33
 
-        #GPIOのモード
-        #GPIO.setmode(GPIO.BOARD)#物理ピン番号でGPIOを指定
+        # duty比指定(0~100)
+        self.duty = 50
 
-        """
-        #周波数設定
-        self.a1 = GPIO.PWM(self.AIN1,255)#255Hz
-        self.a2 = GPIO.PWM(self.AIN2,255)#255Hz
-        self.b1 = GPIO.PWM(self.BIN1,255)
-        self.b2 = GPIO.PWM(self.BIN2,255)
-        #PWM起動
-        self.a1.start(0)#Aenable接続（E）
-        self.a2.start(0)#Aphase接続（P）
-        self.b1.start(0)
-        self.b2.start(0)
-
-        self.duty = 50 #duty比　回転速度変更用変数
-        """
-
-        self.cap = cv2.VideoCapture(0)
-        self.input_shape = (416, 416)
-        self.session = onnxruntime.InferenceSession("yolox_nano_cone_best.onnx")
 
     def object_detection(self):
+
+        # 動画ファイルを保存するための形式指定
         video = cv2.VideoWriter(self.video_name, self.fourcc, self.fps, self.size)
+
         while(self.cap.isOpened()):
+
             # フレームを取得
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) 
-            ret, frame = self.cap.read()
+    
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # バッファサイズ1
+            ret, frame = self.cap.read() # 映像読み込み
             
             origin_img = frame
-            img, ratio = preprocess(origin_img, self.input_shape)#モデルのinputが416*416で学習をしたため、カメラの映像のサイズを416*416にリサイズしている
+            img, ratio = preprocess(origin_img, self.input_shape)# モデルのinputが416*416で学習をしたため、カメラの映像のサイズを416*416にリサイズしている
             # 推論＋後処理
             ort_inputs = {self.session.get_inputs()[0].name: img[None, :, :, :]}
             output = self.session.run(None, ort_inputs)
@@ -100,8 +108,7 @@ class Short_Range(BaseSR):
             dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.40, score_thr=0.1)
             if dets is not None :#コーンが映った場合、BoundingBoxが描画される
                 final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-                #final_boxes　　認識した物体の座標(左上頂点のx,左上頂点のy,右下頂点のx,右下頂点のy)
-                # BoundingBoxを描画する場合
+                # final_boxes　　認識した物体の座標(左上頂点のx,左上頂点のy,右下頂点のx,右下頂点のy)
 
                 #座標がnumpy配列の一つの要素としてまとめられて渡されるので、区切る。
                 x_left_upper = str(final_boxes)
@@ -118,9 +125,9 @@ class Short_Range(BaseSR):
                             conf=0.5, class_names=COCO_CLASSES)#final_cls_indsに、.max()してるのは、要素を1つだけvis()に渡したいので、.max()とすることで一つだけ渡している。他のタスクとかではできない。
             cv2.imshow("Frame",frame)
             video.write(frame)
-            #self.video.write(frame)name='Thread T2'
+
             # qキーが押されたら途中終了
-            if cv2.waitKey(25) & 0xFF == ord('q'):
+            if cv2.waitKey(25) & 0xFF == ord('q') and self.count.value == 1:
                 self.count.value = 1
                 self.cap.release()
                 print("camera finished")
@@ -169,6 +176,8 @@ class Short_Range(BaseSR):
                 a2.ChangeDutyCycle(0)   
                 b1.ChangeDutyCycle(0)
                 b2.ChangeDutyCycle(0)
+
+                self.count.value = 1
         
                 break
             
