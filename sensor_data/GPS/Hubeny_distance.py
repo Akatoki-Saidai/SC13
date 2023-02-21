@@ -1,31 +1,25 @@
-# -*- coding: utf-8 -*-
-import math
+import math 
+from math import radians
 
-pole_radius = 6356752.314245                  # ‹É”¼Œa
-equator_radius = 6378137.0                    # Ô“¹”¼Œa
+pole_radius = 6356752.314245                  # æ¥µåŠå¾„
+equator_radius = 6378137.0                    # èµ¤é“åŠå¾„
 
-def cal_distance():
+def calc_distance(lat1, lon1, lat2, lon2):
 
-    # ˆÜ“xŒo“x‚ğƒ‰ƒWƒAƒ“‚É•ÏŠ·
-    lat_1 = math.radians(lat1)
-    lon_1 = math.radians(latlon_kamata[1])
-    lat_2 = math.radians(latlon_yokosukachuo[0])
-    lon_2 = math.radians(latlon_yokosukachuo[1])
+  # ç·¯åº¦çµŒåº¦ã‚’ãƒ©ã‚¸ã‚¢ãƒ³ã«å¤‰æ›
+  lat1_rad, lon1_rad, lat2_rad,  lon2_rad = map(radians, [lat1, lon1, lat2, lon2])
 
-    lat_difference = lat_kamata - lat_yokosukachuo       # ˆÜ“x·
-    lon_difference = lon_kamata - lon_yokosukachuo       # Œo“x·
-    lat_average = (lat_kamata + lat_yokosukachuo) / 2    # •½‹ÏˆÜ“x
+  lat_difference = lat1_rad - lat2_rad      # ç·¯åº¦å·®
+  lon_difference = lon1_rad - lon2_rad       # çµŒåº¦å·®
+  lat_average = (lat1_rad + lat2_rad) / 2    # å¹³å‡ç·¯åº¦
 
-    e2 = (math.pow(equator_radius, 2) - math.pow(pole_radius, 2)) \
-            / math.pow(equator_radius, 2)  # ‘æˆê—£S—¦^2
+  e2 = (math.pow(equator_radius, 2) - math.pow(pole_radius, 2)) / math.pow(equator_radius, 2)  # ç¬¬ä¸€é›¢å¿ƒç‡^2
 
-    w = math.sqrt(1- e2 * math.pow(math.sin(lat_average), 2))
+  w = math.sqrt(1- e2 * math.pow(math.sin(lat_average), 2))
 
-    m = equator_radius * (1 - e2) / math.pow(w, 3) # qŒßü‹È—¦”¼Œa
+  m = equator_radius * (1 - e2) / math.pow(w, 3) # å­åˆç·šæ›²ç‡åŠå¾„
 
-    n = equator_radius / w                         # ‰K“Ñü‹È”¼Œa
+  n = equator_radius / w                         # å¯é…‰ç·šæ›²åŠå¾„
+  distance = math.sqrt(math.pow(m * lat_difference, 2) + math.pow(n * lon_difference * math.cos(lat_average), 2)) # è·é›¢è¨ˆæ¸¬(m)
 
-    distance = math.sqrt(math.pow(m * lat_difference, 2) \
-                   + math.pow(n * lon_difference * math.cos(lat_average), 2)) # ‹——£Œv‘ª
-
-    print(distance / 1000)
+  return distance
