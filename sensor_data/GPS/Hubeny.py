@@ -2,17 +2,19 @@ from math import sin, cos, sqrt, atan2, radians
 
 def distance(lat1, lon1, lat2, lon2):
 
-    # ’n‹…‚Ì”¼Œaikmj
+    #åœ°çƒã®åŠå¾„ï¼ˆkmï¼‰
     R = 6371
 
-    # “x”‚©‚çƒ‰ƒWƒAƒ“‚É•ÏŠ·
+    #åº¦æ•°ã‹ã‚‰ãƒ©ã‚¸ã‚¢ãƒ³ã«å¤‰æ›
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
 
-    # ƒwƒxƒ“‚ÌŒö®
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
+    #ãƒ’ãƒ¥ãƒ™ãƒ‹ã®å…¬å¼
+    dlat = lat2 - lat1  #2ç‚¹é–“ã®ç·¯åº¦å·®
+    dlon = lon2 - lon1  #2ç‚¹é–“ã®è»½åº¦å·®
     a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     distance = (R * c) *1000
 
     return distance
+
+print(distance(35.678376273798136, 139.7144072265726, 35.67749951124794, 139.7139760005817))
