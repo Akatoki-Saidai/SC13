@@ -1,20 +1,25 @@
-from math import sin, cos, sqrt, atan2, radians
+import math 
+from math import radians
 
-def distance(lat1, lon1, lat2, lon2):
+pole_radius = 6356752.314245                  # 極半径
+equator_radius = 6378137.0                    # 赤道半径
 
-    #地球の半径（km）
-    R = 6371
+def calc_distance(lat1, lon1, lat2, lon2):
 
-    #度数からラジアンに変換
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+  # 緯度経度をラジアンに変換
+  lat1_rad, lon1_rad, lat2_rad,  lon2_rad = map(radians, [lat1, lon1, lat2, lon2])
 
-    #ヒュベニの公式
-    dlat = lat2 - lat1  #2点間の緯度差
-    dlon = lon2 - lon1  #2点間の軽度差
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    distance = (R * c) *1000
+  lat_difference = lat1_rad - lat2_rad      # 緯度差
+  lon_difference = lon1_rad - lon2_rad       # 経度差
+  lat_average = (lat1_rad + lat2_rad) / 2    # 平均緯度
 
-    return distance
+  e2 = (math.pow(equator_radius, 2) - math.pow(pole_radius, 2)) / math.pow(equator_radius, 2)  # 第一離心率^2
 
-print(distance(35.678376273798136, 139.7144072265726, 35.67749951124794, 139.7139760005817))
+  w = math.sqrt(1- e2 * math.pow(math.sin(lat_average), 2))
+
+  m = equator_radius * (1 - e2) / math.pow(w, 3) # 子午線曲率半径
+
+  n = equator_radius / w                         # 卯酉線曲半径
+  distance = math.sqrt(math.pow(m * lat_difference, 2) + math.pow(n * lon_difference * math.cos(lat_average), 2)) # 距離計測(m)
+
+  return distance
