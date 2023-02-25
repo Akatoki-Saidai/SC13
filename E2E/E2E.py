@@ -15,18 +15,18 @@ import time
 import pigpio
 from micropyGPS import MicropyGPS
 ###########グローバル変数宣言##################
-#ゴール座標
-
+#ゴール座標を書くところ
+goal_lattitude =0
+goal_lonngitude = 0
 
 #条件処理用変数
 t = 0 #time
 process = 0 # 繰り返し処理の回数記録用
-A=[0,0,0,0,0] #加速度の移動平均用
-LONGITUDE = [0,0,0,0,0]#緯度の移動平均
-LATITUDE = [0,0,0,0,0]#経度の移動平均
-#データ保存ファイル
-file_BNO055 = open('BNO055_log.csv','w')
-file_GPS = open('GPS_log.csv','w')
+ACCEL= [] #加速度の移動平均
+ALTITUDE = []#高度の移動平均
+LONGITUDE = []#緯度の移動平均
+LATITUDE = []#経度の移動平均
+
 
 #for Motor----------------------------------
 import RPi.GPIO as GPIO #GPIOインポート
@@ -35,6 +35,7 @@ AIN1 = 15
 AIN2 = 29
 BIN1 = 31
 BIN2 = 33
+GPIO.cleanup()#とりあえずGPIOを初期化
 GPIO.setmode(GPIO.BOARD)    #物理ピン番号でGPIOを指定
 GPIO.setup(AIN1,GPIO.OUT)   #AIN1番ピンで
 GPIO.setup(AIN2,GPIO.OUT)   #AIN2ピンで
@@ -67,6 +68,7 @@ digT = []
 digP = []
 digH = []
 t_fine = 0.0
+STANDARD_PRESSURE = 1013.25  # 標準大気圧（ヘクトパスカル）
 
 #for 9軸センサー
 import logging
@@ -242,7 +244,8 @@ def compensate_P(adc_P):
 	v2 = ((pressure / 4.0) * digP[7]) / 8192.0
 	pressure = pressure + ((v1 + v2 + digP[6]) / 16.0)  
 
-	print "pressure : %7.2f hPa" % (pressure/100)
+	#print "pressure : %7.2f hPa" % (pressure/100)
+	return (pressure/100)#hpaの気圧を返す
 
 def compensate_T(adc_T):
 	global t_fine
@@ -250,7 +253,8 @@ def compensate_T(adc_T):
 	v2 = (adc_T / 131072.0 - digT[0] / 8192.0) * (adc_T / 131072.0 - digT[0] / 8192.0) * digT[2]
 	t_fine = v1 + v2
 	temperature = t_fine / 5120.0
-	print "temp : %-6.2f ℃" % (temperature) 
+	#print "temp : %-6.2f ℃" % (temperature) 
+	return(temperature)#気温（摂氏）を返す
 
 def compensate_H(adc_H):
 	global t_fine
@@ -264,7 +268,7 @@ def compensate_H(adc_H):
 		var_h = 100.0
 	elif var_h < 0.0:
 		var_h = 0.0
-	print "hum : %6.2f %" % (var_h)
+	#print "hum : %6.2f %" % (var_h)
 
 def writeReg(reg_address, data):
 	bus.write_byte_data(i2c_address,reg_address,data)
@@ -286,7 +290,7 @@ def BME280_setup():
 	writeReg(0xF4,ctrl_meas_reg)
 	writeReg(0xF5,config_reg)
 #<<空気室センサー繰り返し用関数>>
-def BME280_readData():
+def BME280_main():
 	data = []
 	for i in range (0xF7, 0xF7+8):
 		data.append(bus.read_byte_data(i2c_address,i))
@@ -294,9 +298,11 @@ def BME280_readData():
 	temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
 	hum_raw  = (data[6] << 8)  |  data[7]
 	
-	compensate_T(temp_raw)
-	compensate_P(pres_raw)
-	compensate_H(hum_raw)
+	print(compensate_T(temp_raw))
+	print(compensate_P(pres_raw))
+	print(compensate_H(hum_raw))
+
+	return compensate_T(temp_raw),compensate_P(pres_raw)#気温，気圧を返す
 
 
 #<9軸センサー>
@@ -332,7 +338,8 @@ def BNO055_main():
 	gx,gy,gz = bno.read_gravity()        # Gravity acceleration data (i.e. acceleration just from gravity--returned in meters per second squared):
 	#以下で三軸を表示
 	file_BNO055.write(str(t) + ',' + str(yaw) + ',' + str(roll) + ',' + str(pitch) + '\n')
-	A = np.sqrt(ax**2 + ay**2 +az**2)
+	acccel_sum = np.sqrt(ax**2 + ay**2 +az**2)
+	
 	return A #条件分岐用の戻り値
 
 #GPS-----------------------------------
@@ -367,6 +374,7 @@ def GPS_main():
 					plt.pause(0.1)
 
 #<目標値までの距離，方位を計算>
+from math import radians, sin, cos, tan, atan2
 pole_radius = 6356752.0    #極半径
 equator_radius = 6378137.0    #赤道半径
 def calc_distance_azimuth(naw_lat, naw_lon, goal_lat, goal_lon):
@@ -395,8 +403,25 @@ def calc_distance_azimuth(naw_lat, naw_lon, goal_lat, goal_lon):
   azimuth = (brng + 360) % 360
   
   return distance, azimuth    
+
+#<移動平均の値を計算する関数>    
+def moving_average(x):
+    a=[0,0,0,0,0]
+    sum = 0
+    t = process % 5#tの値で配列のどこに代入するか決める
+    a[t] = x
+    if(process<5):
+        return None #リストの要素数が不十分の時Noneを返す
+    else:
+        for i in range (4):
+           sum += a[i]
+        return sum/5 #リストに数字が入ったら移動平均を始める 
+
+#<気温，気圧から高度を計算するプログラム>
+def calculate_altitude(pressure, temperature):
+    altitude = ((STANDARD_PRESSURE / pressure) ** (1 / 5.257) - 1) * (temperature + 273.15) / 0.0065
+    return altitude
     
-def moving_average():
         
 	
 #setup系の処理
@@ -404,8 +429,22 @@ BME280_setup()
 BME280_get_calib_param()
 BNO55_setup()
 
-#繰り返し処理
+#<実際の処理手順>
+	#データ保存ファイル
+file_BNO055 = open('BNO055_log.csv','w')
+file_GPS = open('GPS_log.csv','w')
+file_BME280 = open('BME280.csv','w')
 
+#<<待機フェーズ>>（BME,BNO）
+while ((ACCEL <= 100) or (ALTITUDE >= 50)):#高度が50m以上，加速度が?以下の時繰り返す
+    if process<5:
+    	ACCEL.append(BNO055_main())#accel_sumが返ってくる
+    	ALTITUDE.append(calculate_altitude())
+    process += 1#繰り返し処理の回数を保存
+    if (BNO055_main())
+    
+    
+    
 
 """
 while True:
