@@ -350,6 +350,7 @@ def BNO055_main():
 #<<北からの角度を計算する関数>>
 def BNO055_heading_read():
     heading, roll, pitch = bno.read_euler
+    file_BNO055.writerow([process, heading, roll, pitch])
     north = bno.magnetic[0], bno.magnetic[1], 0
     degrees = bno.vector_to_heading(north) - heading
     if degrees < 0:
@@ -457,6 +458,10 @@ file_BNO055 = csv.writer(f_BNO055,delimiter=",")
 file_GPS = csv.writer(f_GPS,delimiter=",")
 file_BME280= csv.writer(f_BME280,delimiter=",")
 
+file_BNO055.writerow([process, "yaw", "roll", "pitch"])
+file_GPS.writerow([process, "Latitude", "Longitude"])
+file_BME280.writerow([process, "temp", "press", "humi"])
+
 #<<待機フェーズ>>（BME,BNO）
 time.sleep(60)#一分くらいの停止時間があると思ったから入れてみた．
 while ((AVE_ACCEL <= 100) or (AVE_ALTITUDE >= 50)):#高度が50m以上，加速度が?以下の時繰り返す
@@ -482,10 +487,9 @@ file_BME280.writerow(["待機フェーズ終了"])
 file_BNO055.close()
 file_BME280.close() 
 #file_BNO055 = open('BNO055_log.csv','w')
-
 #file_BME280 = open('BME280.csv','w')
 
-#<<落下フェーズ>>
+#<<落下フェーズ>>(とくになし！！！！！)
 
 #<<分離フェース>>(サーボ，モーター
 servo()
