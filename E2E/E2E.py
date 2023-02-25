@@ -1,5 +1,5 @@
 #モジュールインポート-----------------------------------
-import RPi.GPIO as GPIO #GPIOインポート
+
 import time#時間制御インポート
 import logging
 import sys
@@ -8,31 +8,33 @@ import numpy as np
 from Adafruit_BNO055 import BNO055
 import csv
 import datetime
-import smbus
-import cartopy.crs as ccrs
+#import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
-import cartopy.io.img_tiles as cimgt
+#import cartopy.io.img_tiles as cimgt
 import time
 import pigpio
 from micropyGPS import MicropyGPS
-#モーター----------------------------------
+###########グローバル変数宣言##################
+#ゴール座標
+
+
+#条件処理用変数
+t = 0 #time
+process = 0 # 繰り返し処理の回数記録用
+A=[0,0,0,0,0] #加速度の移動平均用
+LONGITUDE = [0,0,0,0,0]#緯度の移動平均
+LATITUDE = [0,0,0,0,0]#経度の移動平均
+#データ保存ファイル
+file_BNO055 = open('BNO055_log.csv','w')
+file_GPS = open('GPS_log.csv','w')
+
+#for Motor----------------------------------
+import RPi.GPIO as GPIO #GPIOインポート
+
 AIN1 = 15
 AIN2 = 29
 BIN1 = 31
 BIN2 = 33
-
-#空気質センサーBME280---------------------------------
-bus_number  = 1
-i2c_address = 0x76
-
-bus = smbus(bus_number)
-
-digT = []
-digP = []
-digH = []
-
-t_fine = 0.0
-
 GPIO.setmode(GPIO.BOARD)    #物理ピン番号でGPIOを指定
 GPIO.setup(AIN1,GPIO.OUT)   #AIN1番ピンで
 GPIO.setup(AIN2,GPIO.OUT)   #AIN2ピンで
@@ -42,6 +44,81 @@ GPIO.setup(BIN2,GPIO.OUT)   #BIN2ピンでGPIO出力設定
 Apwm = GPIO.PWM(AIN2,255)     #PWM(pin,Hz)→AIN2番ピンで255Hz
 Bpwm = GPIO.PWM(BIN2,255)     #PWM(pin,Hz)→BIN2番ピンで255Hz出力設定
 
+#for servo---------------------------------------------
+import time
+import RPi.GPIO as GPIO
+import sys  # 引数取得
+
+	# pin number
+PIN_servo = 17   # for servo
+GPIO.setmode(GPIO.BCM)      # GPIOへアクセスする番号をBCM番号で指定することを宣言
+GPIO.setup(PIN_servo, GPIO.OUT)     # 出力ピンに設定
+	# servo setup
+servo = GPIO.PWM(PIN_servo, 50)
+servo.start(0)
+
+#for 空気質センサーBME280---------------------------------
+import SMBus
+
+bus_number  = 1
+i2c_address = 0x76
+bus = SMbus(bus_number)
+digT = []
+digP = []
+digH = []
+t_fine = 0.0
+
+#for 9軸センサー
+import logging
+import sys
+import time
+import numpy as np
+import math
+import datetime
+import csv
+from Adafruit_BNO055 import BNO055
+
+bno = BNO055.BNO055()
+
+#for GPS
+	# シリアル通信設定
+baudrate = 9600
+	#通信設定でいじるとしたらここのTX,RXだけど、ピン配置変えたい場合以外はいじらなくてok
+TX = 14
+RX = 15
+
+serialpi = pigpio.pi()
+serialpi.set_mode(RX,pigpio.INPUT)
+serialpi.set_mode(TX,pigpio.OUTPUT)
+
+pigpio.exceptions = False
+serialpi.bb_serial_read_close(RX)
+pigpio.exceptions = True
+
+serialpi.bb_serial_read_open(RX,baudrate,8)
+	# gps設定
+	#my_gpsにデータが格納される感じ
+my_gps = MicropyGPS(9, 'dd') # 引数はタイムゾーンの時差と出力フォーマット
+
+	# 10秒ごとに表示
+	#なんか10秒ごとに表示されてない気がするのでいじってみてほしい
+tm_last = 0
+count = 0
+	# Create stamen terrain background instance
+	#request = cimgt.GoogleTiles()
+fig = plt.figure()
+
+#↓↓↓↓↓↓↓↓関数宣言↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+
+#<モーター関数>
+def accel():#分離フェーズ用微移動(10秒移動？？)
+    for i in range(10):
+        Apwm.start(0)
+        GPIO.output(AIN1,GPIO.HIGH)
+        Apwm.ChangeDutyCycle(0)
+        Bpwm.start(0)               
+        GPIO.output(BIN1,GPIO.HIGH) 
+        Bpwm.ChangeDutyCycle(0)     
 
 def forward():        #前進
     #右車輪(A1,A2)=(+,0)→正回転
@@ -93,12 +170,17 @@ def stop():           #停止
     GPIO.output(BIN1,GPIO.LOW)
     Bpwm.ChangeDutyCycle(0)
 
+#<Servo>
+def servo():
+	input_num = 5.0 #????ナニコレ？	
+ 	# サーボを動かす
+	move_servo_msec = (12-2.5)/180*(int(input_num) + 90) + 2.5 
+	servo.ChangeDutyCycle(move_servo_msec)
+	time.sleep(5.0)
+	servo.stop()
 
-
-def writeReg(reg_address, data):
-	bus.write_byte_data(i2c_address,reg_address,data)
-
-def get_calib_param():
+#<空気室センサー>
+def BME280_get_calib_param():
 	calib = []
 	
 	for i in range (0x88,0x88+24):
@@ -137,18 +219,6 @@ def get_calib_param():
 	for i in range(0,6):
 		if digH[i] & 0x8000:
 			digH[i] = (-digH[i] ^ 0xFFFF) + 1  
-
-def readData():
-	data = []
-	for i in range (0xF7, 0xF7+8):
-		data.append(bus.read_byte_data(i2c_address,i))
-	pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
-	temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
-	hum_raw  = (data[6] << 8)  |  data[7]
-	
-	compensate_T(temp_raw)
-	compensate_P(pres_raw)
-	compensate_H(hum_raw)
 
 def compensate_P(adc_P):
 	global  t_fine
@@ -194,10 +264,12 @@ def compensate_H(adc_H):
 		var_h = 100.0
 	elif var_h < 0.0:
 		var_h = 0.0
-	print "hum : %6.2f ％" % (var_h)
+	print "hum : %6.2f %" % (var_h)
 
+def writeReg(reg_address, data):
+	bus.write_byte_data(i2c_address,reg_address,data)
 
-def setup():
+def BME280_setup():
 	osrs_t = 1			#Temperature oversampling x 1
 	osrs_p = 1			#Pressure oversampling x 1
 	osrs_h = 1			#Humidity oversampling x 1
@@ -213,63 +285,129 @@ def setup():
 	writeReg(0xF2,ctrl_hum_reg)
 	writeReg(0xF4,ctrl_meas_reg)
 	writeReg(0xF5,config_reg)
+#<<空気室センサー繰り返し用関数>>
+def BME280_readData():
+	data = []
+	for i in range (0xF7, 0xF7+8):
+		data.append(bus.read_byte_data(i2c_address,i))
+	pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
+	temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
+	hum_raw  = (data[6] << 8)  |  data[7]
+	
+	compensate_T(temp_raw)
+	compensate_P(pres_raw)
+	compensate_H(hum_raw)
 
 
-#9軸センサー-----------------------------------
-bno = BNO055.BNO055()
-if len(sys.argv) == 2 and sys.argv[1].lower() == '-v':# パラメータとして-vが渡された場合、冗長なデバッグロギングを有効にする
-    logging.basicConfig(level=logging.DEBUG)
-if not bno.begin():# BNO055を初期化し、問題が発生した場合は停止する
-    raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
-status, self_test, error = bno.get_system_status()# システムの状態やセルフテストの結果を表示する
-print('System status: {0}'.format(status))
-print('Self test result (0x0F is normal): 0x{0:02X}'.format(self_test))
-if status == 0x01:# システムステータスがエラーモードの場合、エラーを表示する
-    print('System error: {0}'.format(error))
-    print('See datasheet section 4.3.59 for the meaning.')
-sw, bl, accel, mag, gyro = bno.get_revision()# Print BNO055 software revision and other diagnostic data.
-print('Software version:   {0}'.format(sw))
-print('Bootloader version: {0}'.format(bl))
-print('Accelerometer ID:   0x{0:02X}'.format(accel))
-print('Magnetometer ID:    0x{0:02X}'.format(mag))
-print('Gyroscope ID:       0x{0:02X}\n'.format(gyro))
+#<9軸センサー>
+
+def BNO55_setup():
+	if len(sys.argv) == 2 and sys.argv[1].lower() == '-v':# パラメータとして-vが渡された場合、冗長なデバッグロギングを有効にする
+		logging.basicConfig(level=logging.DEBUG)
+	if not bno.begin():# BNO055を初期化し、問題が発生した場合は停止する
+		raise RuntimeError('Failed to initialize BNO055! Is the sensor connected?')
+	status, self_test, error = bno.get_system_status()# システムの状態やセルフテストの結果を表示する
+	print('System status: {0}'.format(status))
+	print('Self test result (0x0F is normal): 0x{0:02X}'.format(self_test))
+	if status == 0x01:# システムステータスがエラーモードの場合、エラーを表示する
+		print('System error: {0}'.format(error))
+		print('See datasheet section 4.3.59 for the meaning.')
+	sw, bl, accel, mag, gyro = bno.get_revision()# Print BNO055 software revision and other diagnostic data.
+	print('Software version:   {0}'.format(sw))
+	print('Bootloader version: {0}'.format(bl))
+	print('Accelerometer ID:   0x{0:02X}'.format(accel))
+	print('Magnetometer ID:    0x{0:02X}'.format(mag))
+	print('Gyroscope ID:       0x{0:02X}\n'.format(gyro))
+
+#<<9軸センサー繰り返し用関数>>
+def BNO055_main():
+	yaw, roll, pitch = bno.read_euler()# Read the Euler angles for heading, roll, pitch (all in degrees).
+	sys, gyro, accel, mag = bno.get_calibration_status() # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
+	qx,qy,qz,qw = bno.read_quaternion()        # Orientation as a quaternion:
+	#temp_c = bno.read_temp()        # Sensor temperature in degrees Celsius:
+	mx,my,mz = bno.read_magnetometer()        # Magnetometer data (in micro-Teslas):
+	Gx,Gy,Gz = bno.read_gyroscope()        # Gyroscope data (in degrees per second):
+	ax,ay,az = bno.read_accelerometer()        # Accelerometer data (in meters per second squared):
+	lx,ly,lz = bno.read_linear_acceleration()        # Linear acceleration data (i.e. acceleration from movement, not gravity--returned in meters per second squared):
+	gx,gy,gz = bno.read_gravity()        # Gravity acceleration data (i.e. acceleration just from gravity--returned in meters per second squared):
+	#以下で三軸を表示
+	file_BNO055.write(str(t) + ',' + str(yaw) + ',' + str(roll) + ',' + str(pitch) + '\n')
+	A = np.sqrt(ax**2 + ay**2 +az**2)
+	return A #条件分岐用の戻り値
 
 #GPS-----------------------------------
-def main():
+#<<GPSの繰り返し関数>>
+def GPS_main():
+    (count, sentence) = serialpi.bb_serial_read(RX)#ここはよくわからん、データが取れてるかどうか調べるところな気がする
+    if len(sentence) > 0:
+		for x in sentence:
+			if 10 <= x <= 126:
+				stat = my_gps.update(chr(x))
+				if stat:
+					tm = my_gps.timestamp
+					tm_now = (tm[0] * 3600) + (tm[1] * 60) + int(tm[2])
 
-    # シリアル通信設定
-    baudrate = 9600
-    #通信設定でいじるとしたらここのTX,RXだけど、ピン配置変えたい場合以外はいじらなくてok
-    TX = 14
-    RX = 15
 
-    serialpi = pigpio.pi()
-    serialpi.set_mode(RX,pigpio.INPUT)
-    serialpi.set_mode(TX,pigpio.OUTPUT)
+					# Create a GeoAxes in hte tile's projection
+					m1 = fig.add_subplot(111, projection=request.crs) #画面の領域が描写される　111の意味は、1行目1列の1番目という意味　参考サイト　https://qiita.com/kenichiro_nishioka/items/8e307e164a4e0a279734
 
-    pigpio.exceptions = False
-    serialpi.bb_serial_read_close(RX)
-    pigpio.exceptions = True
+					# Set map extent to +- 0.01º of the received position
+					m1.set_extent([my_gps.longitude[0] + 0.01, my_gps.longitude[0] - 0.01, my_gps.latitude[0] + 0.01, my_gps.latitude[0] - 0.01]) #set_extent([西端の経度, 東端の経度, 南端の緯度, 北端の緯度 0.01のところを変えると描写されるマップの広さを変えれる
 
-    serialpi.bb_serial_read_open(RX,baudrate,8)
-    # gps設定
-    #my_gpsにデータが格納される感じ
-    my_gps = MicropyGPS(9, 'dd') # 引数はタイムゾーンの時差と出力フォーマット
+					# Get image at desired zoom
+					m1.add_image(request, 14) ##画像を指定するセルにはる　ここだとグーグルマップのタイルを貼っている　右の値はマップの拡大度合い
+					# Print data on console
+					print('=' * 20)
+					print(my_gps.date_string(), tm[0], tm[1], int(tm[2]))
+					print("latitude:", my_gps.latitude[0], ", longitude:", my_gps.longitude[0])    
+					#time.sleep(1)#一秒停止
 
-    # 10秒ごとに表示
-    #なんか10秒ごとに表示されてない気がするのでいじってみてほしい
-    tm_last = 0
-    count = 0
-    # Create stamen terrain background instance
-    request = cimgt.GoogleTiles()
-    fig = plt.figure()
+		# Plot the new position
+					m1.plot(my_gps.longitude[0], my_gps.latitude[0], '.', transform=ccrs.Geodetic())
+					plt.pause(0.1)
 
+#<目標値までの距離，方位を計算>
+pole_radius = 6356752.0    #極半径
+equator_radius = 6378137.0    #赤道半径
+def calc_distance_azimuth(naw_lat, naw_lon, goal_lat, goal_lon):
+
+  # 緯度経度をラジアンに変換
+  goal_lat_rad, goal_lon_rad, naw_lat_rad, naw_lon_rad = map(radians, [goal_lat, goal_lon, naw_lat, naw_lon])
+
+  d_lat = goal_lat_rad - naw_lat_rad      #緯度差
+  d_lon = goal_lon_rad - naw_lon_rad       #経度差
+  lat_ave = (goal_lat_rad + naw_lat_rad) / 2    #平均緯度
+
+  #距離計算_Hubeny
+  E2 = (math.pow(equator_radius, 2) - math.pow(pole_radius, 2)) / math.pow(equator_radius, 2)     #離心率^2
+  W = math.sqrt(1- E2 * math.pow(math.sin(lat_ave), 2))
+  M = (equator_radius * (1 - E2)) / math.pow(W, 3)    #子午線曲率半径
+  N = equator_radius / W    #卯酉線曲半径
+  
+  distance = math.sqrt(math.pow(M * d_lat, 2) + math.pow(N * d_lon * math.cos(lat_ave), 2))    #距離計測(m)
+
+  
+  #方位角計算
+  x = math.cos(naw_lat_rad) * math.sin(goal_lat_rad) - math.sin(naw_lat_rad) * math.cos(goal_lat_rad) * math.cos(d_lon)
+  y = math.sin(d_lon) * math.cos(goal_lat_rad)
+
+  brng = math.degrees(math.atan2(y, x))
+  azimuth = (brng + 360) % 360
+  
+  return distance, azimuth    
+    
+def moving_average():
+        
 	
-	
+#setup系の処理
+BME280_setup()
+BME280_get_calib_param()
+BNO55_setup()
+
 #繰り返し処理
-setup()
-get_calib_param()
 
+
+"""
 while True:
     heading, roll, pitch = bno.read_euler()# Read the Euler angles for heading, roll, pitch (all in degrees).
     sys, gyro, accel, mag = bno.get_calibration_status() # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
@@ -311,7 +449,7 @@ while True:
     print("pitch:%f", pitch)
     print("yaw  :%f", yaw)
 #BME280
-    readData()
+    BME280_readData()
 #GPS
     (count, sentence) = serialpi.bb_serial_read(RX)#ここはよくわからん、データが取れてるかどうか調べるところな気がする
     if len(sentence) > 0:
@@ -341,3 +479,4 @@ while True:
 		m1.plot(my_gps.longitude[0], my_gps.latitude[0], '.', transform=ccrs.Geodetic())
 		plt.pause(0.1)
 
+"""
