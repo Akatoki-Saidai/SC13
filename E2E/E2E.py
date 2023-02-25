@@ -24,8 +24,10 @@ t = 0 #time
 process = 0 # 繰り返し処理の回数記録用
 ACCEL= [] #加速度の移動平均
 ALTITUDE = []#高度の移動平均
-LONGITUDE = []#緯度の移動平均
-LATITUDE = []#経度の移動平均
+AVE_ACCEL = 0
+AVE_ALTITUDE = 0
+LONGITUDE = 0#緯度
+LATITUDE = 0#経度
 
 
 #for Motor----------------------------------
@@ -42,8 +44,17 @@ GPIO.setup(AIN2,GPIO.OUT)   #AIN2ピンで
 GPIO.setup(BIN1,GPIO.OUT)   #BIN1ピンで
 GPIO.setup(BIN2,GPIO.OUT)   #BIN2ピンでGPIO出力設定
 
-Apwm = GPIO.PWM(AIN2,255)     #PWM(pin,Hz)→AIN2番ピンで255Hz
-Bpwm = GPIO.PWM(BIN2,255)     #PWM(pin,Hz)→BIN2番ピンで255Hz出力設定
+Apwm1 = GPIO.PWM(AIN1,50)
+Bpwm1 = GPIO.PWM(BIN1,50)
+Apwm2 = GPIO.PWM(AIN2,50)     #PWM(pin,Hz)→AIN2番ピンで50Hz
+Bpwm2 = GPIO.PWM(BIN2,50)     #PWM(pin,Hz)→BIN2番ピンで50Hz出力設定
+
+duty = 100	#回転速の比率とりあえず１００％
+    
+Apwm1.start(0)
+Apwm2.start(0)
+Bpwm1.start(0)
+Bpwm2.start(0)
 
 #for servo---------------------------------------------
 import time
@@ -115,62 +126,51 @@ fig = plt.figure()
 #<モーター関数>
 def accel():#分離フェーズ用微移動(10秒移動？？)
     for i in range(10):
-        Apwm.start(0)
-        GPIO.output(AIN1,GPIO.HIGH)
-        Apwm.ChangeDutyCycle(0)
-        Bpwm.start(0)               
-        GPIO.output(BIN1,GPIO.HIGH) 
-        Bpwm.ChangeDutyCycle(0)     
+        Apwm1.ChangeDutyCycle(10*i)
+        Apwm2.ChangeDutyCycle(0)   
+        Bpwm1.ChangeDutyCycle(10*1) 
+        Bpwm2.ChangeDutyCycle(0)   
+        time.sleep(1)  
+    stop()
 
 def forward():        #前進
     #右車輪(A1,A2)=(+,0)→正回転
-    Apwm.start(0)               #start(duty比)つまり出力0の状態              
-    GPIO.output(AIN1,GPIO.HIGH) #AIN1を出力(pin,出力を100％) 
-    Apwm.ChangeDutyCycle(0)     #ChangeDutyCycle(duty)→AIN2のduty比０に設定
-    #左車輪(BIN1.BIN2)=(+,0)→正回転
-    Bpwm.start(0)               
-    GPIO.output(BIN1,GPIO.HIGH) #def forward()右車輪と同上
-    Bpwm.ChangeDutyCycle(0)     
+	Apwm1.ChangeDutyCycle(duty)
+	Apwm2.ChangeDutyCycle(0)   
+	Bpwm1.ChangeDutyCycle(duty)
+	Bpwm2.ChangeDutyCycle(0)   
+	   
     
 def turn_right():    #右回転
     #右車輪(AIN1,AIN2)=(0,+)→負回転
-    Apwm.start(0)                
-    GPIO.output(AIN1,GPIO.LOW)  #def forward()右車輪と同上
-    Apwm.ChangeDutyCycle(100)   #duty比100％→255Hz（max）出力
-    #左車輪(BIN1.BIN2)=(+,0)→正回転
-    Bpwm.start(0)                
-    GPIO.output(BIN1,GPIO.HIGH) #def forward()右車輪と同上
-    Bpwm.ChangeDutyCycle(0)     
+    #右車輪(AIN1,AIN2)=(+,0)→正回転
+	Apwm1.ChangeDutyCycle(0)
+	Apwm2.ChangeDutyCycle(duty)   
+	Bpwm1.ChangeDutyCycle(duty)
+	Bpwm2.ChangeDutyCycle(0)       
     
 def turn_left():     #左回転
     #右車輪(AIN1.AIN2)=(+,0)→正回転
-    Apwm.start(0)               
-    GPIO.output(AIN1,GPIO.HIGH) #def forward()右車輪と同上
-    Apwm.ChangeDutyCycle(0)     
-    #左車輪(BIN1.BIN2)=(0,+)→負回転
-    Bpwm.start(0)               
-    GPIO.output(BIN1,GPIO.LOW)  #def forward()右車輪と同上
-    Bpwm.ChangeDutyCycle(100)   
+	#左車輪(BIN1.BIN2)=(0,+)→負回転
+	Apwm1.ChangeDutyCycle(duty)
+	Apwm2.ChangeDutyCycle(0)   
+	Bpwm1.ChangeDutyCycle(0)
+	Bpwm2.ChangeDutyCycle(duty)      
 
 def back():          #後進
     #左車輪(AIN1.AIN2)=(0,+)→負回転
-    Apwm.start(0)                  #def forward()右車輪と同上
-    GPIO.output(AIN1,GPIO.LOW)
-    Apwm.ChangeDutyCycle(75)
     #左車輪(BIN1.BIN2)=(+,0)→負回転
-    Bpwm.start(0)                  #def forward()右車輪と同上
-    GPIO.output(BIN1,GPIO.LOW)
-    Bpwm.ChangeDutyCycle(100)
+	Apwm1.ChangeDutyCycle(0)
+	Apwm2.ChangeDutyCycle(duty)   
+	Bpwm1.ChangeDutyCycle(0)
+	Bpwm2.ChangeDutyCycle(duty)   
     
 def stop():           #停止
-    #左車輪(AIN1.AIN2)=(0,0)→停止
-    Apwm.start(0)                  #def forward（）右車輪と同上
-    GPIO.output(AIN1,GPIO.LOW)
-    Apwm.ChangeDutyCycle(0)
-    #左車輪(BIN1.BIN2)=(0,0)→停止
-    Bpwm.start(0)                  #def forward()右車輪と同上
-    GPIO.output(BIN1,GPIO.LOW)
-    Bpwm.ChangeDutyCycle(0)
+    Apwm1.stop()
+    Apwm2.stop()
+    Bpwm1.stop()
+    Bpwm2.stop()
+    
 
 #<Servo>
 def servo():
@@ -289,6 +289,7 @@ def BME280_setup():
 	writeReg(0xF2,ctrl_hum_reg)
 	writeReg(0xF4,ctrl_meas_reg)
 	writeReg(0xF5,config_reg)
+ 
 #<<空気室センサー繰り返し用関数>>
 def BME280_main():
 	data = []
@@ -298,11 +299,15 @@ def BME280_main():
 	temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
 	hum_raw  = (data[6] << 8)  |  data[7]
 	
-	print(compensate_T(temp_raw))
-	print(compensate_P(pres_raw))
-	print(compensate_H(hum_raw))
+	T = compensate_T(temp_raw)
+	P = compensate_P(pres_raw)
+	H = compensate_H(hum_raw)
+	print(T)
+	print(P)
+	print(H)
+	file_BME280.writerow([process, T,P, H])
 
-	return compensate_T(temp_raw),compensate_P(pres_raw)#気温，気圧を返す
+	return [compensate_T(temp_raw),compensate_P(pres_raw)]#気温，気圧を返す
 
 
 #<9軸センサー>
@@ -329,18 +334,27 @@ def BNO55_setup():
 def BNO055_main():
 	yaw, roll, pitch = bno.read_euler()# Read the Euler angles for heading, roll, pitch (all in degrees).
 	sys, gyro, accel, mag = bno.get_calibration_status() # Read the calibration status, 0=uncalibrated and 3=fully calibrated.
-	qx,qy,qz,qw = bno.read_quaternion()        # Orientation as a quaternion:
-	#temp_c = bno.read_temp()        # Sensor temperature in degrees Celsius:
-	mx,my,mz = bno.read_magnetometer()        # Magnetometer data (in micro-Teslas):
-	Gx,Gy,Gz = bno.read_gyroscope()        # Gyroscope data (in degrees per second):
+	# qx,qy,qz,qw = bno.read_quaternion()        # Orientation as a quaternion:
+	# #temp_c = bno.read_temp()        # Sensor temperature in degrees Celsius:
+	# mx,my,mz = bno.read_magnetometer()        # Magnetometer data (in micro-Teslas):
+	# Gx,Gy,Gz = bno.read_gyroscope()        # Gyroscope data (in degrees per second):
 	ax,ay,az = bno.read_accelerometer()        # Accelerometer data (in meters per second squared):
-	lx,ly,lz = bno.read_linear_acceleration()        # Linear acceleration data (i.e. acceleration from movement, not gravity--returned in meters per second squared):
-	gx,gy,gz = bno.read_gravity()        # Gravity acceleration data (i.e. acceleration just from gravity--returned in meters per second squared):
+	# lx,ly,lz = bno.read_linear_acceleration()        # Linear acceleration data (i.e. acceleration from movement, not gravity--returned in meters per second squared):
+	# gx,gy,gz = bno.read_gravity()        # Gravity acceleration data (i.e. acceleration just from gravity--returned in meters per second squared):
 	#以下で三軸を表示
-	file_BNO055.write(str(t) + ',' + str(yaw) + ',' + str(roll) + ',' + str(pitch) + '\n')
+	file_BNO055.writerow([process, yaw, roll, pitch])
 	acccel_sum = np.sqrt(ax**2 + ay**2 +az**2)
 	
-	return A #条件分岐用の戻り値
+	return acccel_sum #条件分岐用の戻り値
+
+#<<北からの角度を計算する関数>>
+def BNO055_heading_read():
+    heading, roll, pitch = bno.read_euler
+    north = bno.magnetic[0], bno.magnetic[1], 0
+    degrees = bno.vector_to_heading(north) - heading
+    if degrees < 0:
+        degrees += 360
+    return degrees
 
 #GPS-----------------------------------
 #<<GPSの繰り返し関数>>
@@ -356,22 +370,24 @@ def GPS_main():
 
 
 					# Create a GeoAxes in hte tile's projection
-					m1 = fig.add_subplot(111, projection=request.crs) #画面の領域が描写される　111の意味は、1行目1列の1番目という意味　参考サイト　https://qiita.com/kenichiro_nishioka/items/8e307e164a4e0a279734
+					#m1 = fig.add_subplot(111, projection=request.crs) #画面の領域が描写される　111の意味は、1行目1列の1番目という意味　参考サイト　https://qiita.com/kenichiro_nishioka/items/8e307e164a4e0a279734
 
 					# Set map extent to +- 0.01º of the received position
-					m1.set_extent([my_gps.longitude[0] + 0.01, my_gps.longitude[0] - 0.01, my_gps.latitude[0] + 0.01, my_gps.latitude[0] - 0.01]) #set_extent([西端の経度, 東端の経度, 南端の緯度, 北端の緯度 0.01のところを変えると描写されるマップの広さを変えれる
+					#m1.set_extent([my_gps.longitude[0] + 0.01, my_gps.longitude[0] - 0.01, my_gps.latitude[0] + 0.01, my_gps.latitude[0] - 0.01]) #set_extent([西端の経度, 東端の経度, 南端の緯度, 北端の緯度 0.01のところを変えると描写されるマップの広さを変えれる
 
 					# Get image at desired zoom
-					m1.add_image(request, 14) ##画像を指定するセルにはる　ここだとグーグルマップのタイルを貼っている　右の値はマップの拡大度合い
+					#m1.add_image(request, 14) ##画像を指定するセルにはる　ここだとグーグルマップのタイルを貼っている　右の値はマップの拡大度合い
 					# Print data on console
 					print('=' * 20)
 					print(my_gps.date_string(), tm[0], tm[1], int(tm[2]))
 					print("latitude:", my_gps.latitude[0], ", longitude:", my_gps.longitude[0])    
 					#time.sleep(1)#一秒停止
-
-		# Plot the new position
-					m1.plot(my_gps.longitude[0], my_gps.latitude[0], '.', transform=ccrs.Geodetic())
-					plt.pause(0.1)
+					#ファイルに書き込み
+					file_GPS.writerow([process, my_gps.latitude[0], my_gps.longitude[0]])
+					return my_gps.latitude[0],my_gps.longitude[0] 
+			# Plot the new position
+					#m1.plot(my_gps.longitude[0], my_gps.latitude[0], '.', transform=ccrs.Geodetic())
+					#plt.pause(0.1)
 
 #<目標値までの距離，方位を計算>
 from math import radians, sin, cos, tan, atan2
@@ -405,24 +421,26 @@ def calc_distance_azimuth(naw_lat, naw_lon, goal_lat, goal_lon):
   return distance, azimuth    
 
 #<移動平均の値を計算する関数>    
-def moving_average(x):
-    a=[0,0,0,0,0]
-    sum = 0
-    t = process % 5#tの値で配列のどこに代入するか決める
-    a[t] = x
-    if(process<5):
-        return None #リストの要素数が不十分の時Noneを返す
-    else:
-        for i in range (4):
-           sum += a[i]
-        return sum/5 #リストに数字が入ったら移動平均を始める 
+# def moving_average(x):
+#     a=[0,0,0,0,0]
+#     sum = 0
+#     t = process % 5#tの値で配列のどこに代入するか決める
+#     a[t] = x
+#     if(process<5):
+#         return None #リストの要素数が不十分の時Noneを返す
+#     else:
+#         for i in range (4):
+#            sum += a[i]
+#         return sum/5 #リストに数字が入ったら移動平均を始める 
 
 #<気温，気圧から高度を計算するプログラム>
 def calculate_altitude(pressure, temperature):
     altitude = ((STANDARD_PRESSURE / pressure) ** (1 / 5.257) - 1) * (temperature + 273.15) / 0.0065
     return altitude
-    
-        
+
+
+#///////////////////////////////////////////////////////////
+#///////////////////////////////////////////////////////////        
 	
 #setup系の処理
 BME280_setup()
@@ -431,19 +449,70 @@ BNO55_setup()
 
 #<実際の処理手順>
 	#データ保存ファイル
-file_BNO055 = open('BNO055_log.csv','w')
-file_GPS = open('GPS_log.csv','w')
-file_BME280 = open('BME280.csv','w')
+f_BNO055 = open('BNO055_log.csv','f',encoding="utf-8")
+f_GPS = open('GPS_log.csv','f',encoding="utf-8")
+f_BME280 = open('BME280.csv','f',encoding="utf-8")
+	#CSV形式の保存指定
+file_BNO055 = csv.writer(f_BNO055,delimiter=",")
+file_GPS = csv.writer(f_GPS,delimiter=",")
+file_BME280= csv.writer(f_BME280,delimiter=",")
 
 #<<待機フェーズ>>（BME,BNO）
-while ((ACCEL <= 100) or (ALTITUDE >= 50)):#高度が50m以上，加速度が?以下の時繰り返す
-    if process<5:
-    	ACCEL.append(BNO055_main())#accel_sumが返ってくる
-    	ALTITUDE.append(calculate_altitude())
-    process += 1#繰り返し処理の回数を保存
-    if (BNO055_main())
+time.sleep(60)#一分くらいの停止時間があると思ったから入れてみた．
+while ((AVE_ACCEL <= 100) or (AVE_ALTITUDE >= 50)):#高度が50m以上，加速度が?以下の時繰り返す
+	if (process<5):#移動平均のリストを作成
+		ACCEL.append(BNO055_main())#accel_sumが返ってくる
+		ALTITUDE.append(calculate_altitude(BME280_main()[0],BME280_main()[1]))
+		process += 1#繰り返し処理の回数を保存
+		continue
+	else:
+		#移動平均の計算↓
+		tempo_accel = BNO055_main()
+		tempo_altitude = calculate_altitude(BME280_main()[0],BME280_main()[1])
+		ACCEL[process % 5] = tempo_accel
+		ALTITUDE[process % 5] = tempo_altitude 
+		for i in range(4):
+			AVE_ACCEL += ACCEL[i] 
+			AVE_ALTITUDE += ALTITUDE[i]
+		AVE_ACCEL /= 5 #加速度の移動平均
+		AVE_ALTITUDE /= 5 #高度の移動平均
+		process += 1
+file_BNO055.writerow(["待機フェーズ終了"])
+file_BME280.writerow(["待機フェーズ終了"])
+file_BNO055.close()
+file_BME280.close() 
+#file_BNO055 = open('BNO055_log.csv','w')
+
+#file_BME280 = open('BME280.csv','w')
+
+#<<落下フェーズ>>
+
+#<<分離フェース>>(サーボ，モーター
+servo()
+accel()
+
+#<<長距離フェーズ>>(GPS,モーター)
+while(1):
+    process += 1 
+    if (0<=BNO055_heading_read()<=30,330<= BNO055_heading_read()<=360):
+        forward()
+        time.sleep(1)
+    elif(30 < BNO055_heading_read()<180):
+        turn_right(1)
+    elif(180<= BNO055_heading_read() <330):
+        turn_left()
+        time.sleep(1)
+    else:
+        time.sleep(1)
+    
+    if (calc_distance_azimuth[0] <=  10):
+        break
     
     
+#<<近距離フェーズ>>
+from Base_Integrate import Short_Range
+    
+Short_Range()    
     
 
 """
